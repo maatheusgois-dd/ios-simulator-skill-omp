@@ -1,6 +1,6 @@
 # CLAUDE.md - Developer Guide
 
-This file provides guidance to Claude Code and developers working with this repository.
+This file provides guidance to OMP (Oh My Pi) agents and developers working with this repository. OMP auto-loads it as project context.
 
 ## Project Overview
 
@@ -13,13 +13,15 @@ iOS Simulator Skill is a production-ready Agent Skill providing 29 scripts for i
 - 100% token-optimized default output
 - 184 unit tests across pipeline / sessions / token-budget / diff / privacy (run `pytest tests/`)
 
+## OMP Runtime
+
+The skill targets [Oh My Pi](https://omp.sh): installed at `~/.omp/agent/skills/ios-simulator-skill/`, read via `skill://ios-simulator-skill`. Scripts are invoked through the shell unchanged; SKILL.md's **OMP Orchestration** section documents how they compose with harness abilities (`inspect_image`, `eval` kernel state, `hub`-supervised streams, `task` fan-out, `todo` phases).
+
 ## Project Structure
 
 ```
 ios-simulator-skill/            # Repository root
 ├── ios-simulator-skill/        # Distributable package
-│   ├── .claude-plugin/
-│   │   └── plugin.json        # Plugin manifest
 │   └── skills/
 │       └── ios-simulator-skill/
 │           ├── SKILL.md       # Entry point (table of contents)

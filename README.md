@@ -1,6 +1,4 @@
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/conorluddy/ios-simulator-skill)
-
-# iOS Simulator Skill for Claude Code
+# iOS Simulator Skill for Oh My Pi (OMP)
 
 Production-ready skill for building, testing, and automating iOS apps. 29 scripts optimized for both human developers and AI agents.
 
@@ -13,31 +11,19 @@ This skill covers both sides of iOS development:
 - **Xcode builds** via `xcodebuild` — compile, test, and parse results with progressive error disclosure
 - **Simulator interaction** via `xcrun simctl` and `idb` — semantic UI navigation, accessibility testing, device lifecycle
 
-If you only need Xcode build tooling without the simulator scripts, see the plugin version: [xclaude-plugin](https://github.com/conorluddy/xclaude-plugin)
-
 ## Installation
-
-### Via Plugin Marketplace (Recommended)
-
-In Claude Code:
-
-```
-/plugin marketplace add conorluddy/ios-simulator-skill
-/plugin install ios-simulator-skill@conorluddy
-```
 
 ### Manual install
 
-A skill is loaded from `SKILL.md` at the root of its directory — `~/.claude/skills/<name>/SKILL.md`.
-This repository is a *plugin*, so the skill itself lives at
-`ios-simulator-skill/skills/ios-simulator-skill/`; cloning the whole repo into your skills
-directory puts `SKILL.md` three levels too deep and the skill will not load.
+A skill is loaded from `SKILL.md` at the root of its directory — `~/.omp/agent/skills/<name>/SKILL.md`.
+This repository nests the skill at `ios-simulator-skill/skills/ios-simulator-skill/`, so cloning the
+whole repo into your skills directory puts `SKILL.md` three levels too deep and the skill will not load.
 
 **From a release** (simplest):
 
 ```bash
 curl -L https://github.com/conorluddy/ios-simulator-skill/releases/latest/download/ios-simulator-skill.zip -o skill.zip
-unzip skill.zip -d ~/.claude/skills/ios-simulator-skill
+unzip skill.zip -d ~/.omp/agent/skills/ios-simulator-skill
 ```
 
 **From a clone** (to track `main`):
@@ -45,11 +31,13 @@ unzip skill.zip -d ~/.claude/skills/ios-simulator-skill
 ```bash
 git clone https://github.com/conorluddy/ios-simulator-skill.git ~/src/ios-simulator-skill
 cp -R ~/src/ios-simulator-skill/ios-simulator-skill/skills/ios-simulator-skill \
-      ~/.claude/skills/ios-simulator-skill
+      ~/.omp/agent/skills/ios-simulator-skill
 ```
 
-For a project-local install, use `.claude/skills/ios-simulator-skill` as the destination instead.
-Either way, restart Claude Code afterwards; verify with `ls ~/.claude/skills/ios-simulator-skill/SKILL.md`.
+For a project-local install, use `.omp/skills/ios-simulator-skill` as the destination instead.
+Either way, restart OMP afterwards; verify with `ls ~/.omp/agent/skills/ios-simulator-skill/SKILL.md`.
+The skill is then reachable as `skill://ios-simulator-skill`.
+
 
 ### Prerequisites
 
@@ -105,6 +93,12 @@ first on your `PATH` wins — check with `which -a idb`.
   detects this.
 
 ## Features
+
+### OMP Orchestration
+
+Under [Oh My Pi](https://omp.sh), the scripts compose with the harness's native abilities: screenshot files inspected via `inspect_image` (targeted vision questions at ~0 inline image tokens), device UDIDs and hang-session IDs held in the persistent `eval` kernel across steps, live log/hang streams run supervised via `hub`, independent device prep fanned out via `task` subagents, and UI test flows tracked in native `todo` phases. See **SKILL.md → OMP Orchestration**.
+
+
 
 ### Xcode Build with Progressive Disclosure
 
@@ -323,16 +317,7 @@ Parse errors fall back to the documented default with a warning on stderr — no
 
 ## Evaluation
 
-Tested using [Claude Code evals](https://docs.claude.com/en/docs/claude-code/evals):
-
-| Condition | Pass Rate |
-|-----------|-----------|
-| With skill | **100%** (3/3) |
-| Without skill | **46%** (~1.4/3) |
-
-```bash
-claude evals run evals/evals.json --skill ios-simulator-skill
-```
+Skill quality is verified with subagent retrieval testing (see `DEV.md`): a read-only agent is given a realistic simulator task with and without the skill loaded, and its tool choices (accessibility-tree-first navigation, non-blocking streams, state kept across steps) are compared. Historical Claude Code evals measured 100% (3/3) with the skill vs ~46% without; the same task shape is used for the subagent tests.
 
 ## License
 

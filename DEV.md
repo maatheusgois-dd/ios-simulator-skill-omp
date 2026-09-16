@@ -4,7 +4,7 @@ This is the **development repository** for the iOS Simulator Skill. Users should
 
 ## What is This?
 
-A production-ready Claude Code skill providing 29 scripts for iOS simulator testing and automation with:
+A production-ready OMP (Oh My Pi) agent skill providing 29 scripts for iOS simulator testing and automation with:
 - 🏗️ **Ultra token-efficient build automation** with progressive disclosure
 - 🔍 **Real-time log monitoring** with intelligent filtering
 - 🎯 **Accessibility-driven navigation** (semantic, not pixel-based)
@@ -16,16 +16,16 @@ A production-ready Claude Code skill providing 29 scripts for iOS simulator test
 
 ## For Users: Installation
 
-Download the latest release and extract to your Claude skills directory:
+Download the latest release and extract to your OMP skills directory:
 
 ```bash
 # Download the latest release
 curl -L https://github.com/conorluddy/ios-simulator-skill/releases/latest/download/ios-simulator-skill.zip -o skill.zip
 
-# Extract to Claude Code skills directory (SKILL.md must end up at its root)
-unzip skill.zip -d ~/.claude/skills/ios-simulator-skill
+# Extract to OMP skills directory (SKILL.md must end up at its root)
+unzip skill.zip -d ~/.omp/agent/skills/ios-simulator-skill
 
-# Restart Claude Code
+# Restart OMP; verify with skill://ios-simulator-skill
 ```
 
 See [`SKILL.md`](ios-simulator-skill/skills/ios-simulator-skill/SKILL.md) for usage documentation.
@@ -157,9 +157,9 @@ python ios-simulator-skill/scripts/build_and_test.py --help
 python ios-simulator-skill/scripts/screen_mapper.py
 
 # Test skill installation
-mkdir -p ~/.claude/skills/ios-simulator-skill-test
-cp -r ios-simulator-skill/* ~/.claude/skills/ios-simulator-skill-test/
-# Restart Claude Code and verify
+mkdir -p ~/.omp/agent/skills/ios-simulator-skill-test
+cp -r ios-simulator-skill/skills/ios-simulator-skill/* ~/.omp/agent/skills/ios-simulator-skill-test/
+# Restart OMP and verify the skill loads
 ```
 
 ## Code Style Guidelines

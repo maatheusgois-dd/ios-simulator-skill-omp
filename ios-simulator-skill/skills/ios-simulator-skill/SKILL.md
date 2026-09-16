@@ -1,12 +1,12 @@
 ---
 name: ios-simulator-skill
-version: 1.5.0
-description: 29 production-ready scripts for iOS app testing, building, and automation. Provides semantic UI navigation, build automation, accessibility testing, and simulator lifecycle management. Optimized for AI agents with minimal token output.
+version: 2.0.0
+description: Use when building, testing, or automating iOS apps on the simulator — Xcode builds and xcresult parsing, semantic UI navigation via the accessibility tree, gestures and text input via idb, hang detection (HangBuster), accessibility/localization audits, permissions, push simulation, and simulator lifecycle (boot, create, erase). Triggers include simctl, idb, xcodebuild, xcresult, "simulator", "tap button", "UI test", "hang", "Core Data on simulator".
 ---
 
 # iOS Simulator Skill
 
-Build, test, and automate iOS applications using accessibility-driven navigation and structured data instead of pixel coordinates.
+Build, test, and automate iOS applications using accessibility-driven navigation and structured data instead of pixel coordinates. 29 production scripts wrapping `xcodebuild`, `xcrun simctl`, and `idb`.
 
 ## Quick Start
 
@@ -38,7 +38,65 @@ Use this priority:
 2. `navigator.py --find-text/--find-type/--find-id` → semantic interaction
 3. Screenshots → only for visual verification, bug reports, or visual diff
 
-Screenshots cost 1,600–6,300 tokens depending on size. The accessibility tree costs 10–50 tokens in default mode.
+Screenshots cost 1,600–6,300 tokens inline. The accessibility tree costs 10–50 tokens in default mode. Under OMP, screenshot *inspection* is near-free — see [OMP Orchestration](#omp-orchestration).
+
+## OMP Orchestration
+
+These patterns compose OMP's native abilities around the scripts. Scripts run via `bash` unchanged.
+
+### Screenshots → `inspect_image`
+
+Never inline a screenshot into the conversation. Capture to a file, then ask a targeted question:
+
+```bash
+xcrun simctl io <udid> screenshot /tmp/screen.png   # or app_state_capture.py --output
+```
+
+Then `inspect_image` on the path: "Does the login button show an error state?", "Is the sheet fully presented?" Targeted questions get exact answers at ~0 image tokens vs 800–6,300 inline. Screenshot sizing presets (`full`/`half`/`quarter`, see Common Patterns) still control capture resolution when a script produces the image.
+
+### Stateful sessions → `eval` kernel
+
+Re-resolving the booted device and re-importing helpers on every step is waste. Load once in the persistent Python kernel, keep state as variables:
+
+```python
+# eval cell 1 — setup, once
+import sys; sys.path.insert(0, "ios-simulator-skill/skills/ios-simulator-skill/scripts")
+from common.device_utils import resolve_device_identifier
+UDID = resolve_device_identifier(None)   # persists across cells
+BUNDLE = "com.example.app"
+```
+
+```python
+# eval cell N — navigate; UDID/BUNDLE still in kernel state
+!python scripts/navigator.py --find-text "Login" --tap
+```
+
+HangBuster session IDs work the same way: `SID = ...` from `--start`, reused by `--stop`, `--get-details`, `--diff`.
+
+### Streaming → `hub op:start`
+
+`log_monitor.py --follow` and `hang_watcher.py --watch` are long-running processes. Never run them in a foreground bash call — start them supervised via `hub` (`op: "start"` with a ready log pattern), follow output with log cursors, and stop by name when done. Bounded-duration captures (`--duration 30`) are fine in plain `bash`.
+
+HangBuster **session mode** (`--start` / `--stop`, detached worker) is already OMP-shaped — no hub needed; it's the recommended path for hang recording.
+
+### Parallel prep → `task` subagents
+
+Independent device setup (boot, health check, app install) fans out as one `tasks[]` wave. Only for genuinely independent work — never serialize what a single `bash` call already covers.
+
+### Multi-step flows → `todo`
+
+UI test workflows (launch → navigate → assert → audit) belong in native `todo` phases, not ad-hoc prose, so incomplete steps surface at stop time.
+
+### Native-tool substitution
+
+| Task | Script path | OMP-native alternative |
+|---|---|---|
+| Inspect `.xcresult` bundle | `build_and_test.py --get-errors <id>` | `read <id>.xcresult` (directory listing), `read` members directly |
+| Core Data store contents | `container.py --core-data-path` | `read store.sqlite:table`, `read store.sqlite` (schema) |
+| Session NDJSON analysis | `zcat \| jq` recipes | `grep` on `events.jsonl`, `read` with line ranges |
+| Log tail | `log_monitor.py` | `grep` on captured files; hub for live streams |
+
+Scripts remain authoritative for anything involving device state or subprocess control.
 
 ## 29 Production Scripts
 
@@ -172,7 +230,7 @@ Screenshots cost 1,600–6,300 tokens depending on size. The accessibility tree 
       - `--get-details SESSION_ID` on a raw session prints the path with a `zcat | jq ...` hint
     - **Resilience (auto-restart on stream death):** EOF or subprocess death triggers a `stream_died` event then a bounded restart with 2s backoff. After `IOS_SIM_HANG_MAX_RESTARTS` (default 3) the session is marked `crashed`, never left in stale `running` state. `--list-sessions` shows `capture=Xs` and `restarts=N`.
     - **Cleanup is automatic:** TTL prune (`IOS_SIM_HANG_SESSION_TTL_HOURS`, default 24h) + aggregate cap (`IOS_SIM_HANG_TOTAL_CAP_MB`, default 100 MB, oldest-first eviction) both run on every `--start`.
-    - **Legacy modes (unchanged for backward compat):** `--watch [--duration N]` (live stream) and `--since 5m` (historical)
+    - **Legacy modes:** `--watch [--duration N]` (live stream — run via `hub`, see OMP Orchestration) and `--since 5m` (historical)
     - Filters: `--bundle-id` (post-parse — hang capture stays simulator-global so RunningBoard/SpringBoard events are kept), `--predicate` (also via `IOS_SIM_HANG_PREDICATE`)
     - All output supports `--json`; session storage at `~/.ios-simulator-skill/sessions/<id>/{meta.json,events.jsonl,summary.json,raw.ndjson.gz}`
 
@@ -368,6 +426,22 @@ IOS_SIM_BOOT_TIMEOUT=600 python scripts/simctl_boot.py --wait-ready
 
 Verify with `bash scripts/sim_health_check.sh` (add `--json` for structured output).
 
+## Installation (OMP)
+
+A skill is loaded from `SKILL.md` at the root of its directory. Install to OMP's user skills directory:
+
+```bash
+# From a release
+curl -L https://github.com/conorluddy/ios-simulator-skill/releases/latest/download/ios-simulator-skill.zip -o skill.zip
+unzip skill.zip -d ~/.omp/agent/skills/ios-simulator-skill
+
+# From a clone (to track main)
+cp -R ~/src/ios-simulator-skill/ios-simulator-skill/skills/ios-simulator-skill \
+      ~/.omp/agent/skills/ios-simulator-skill
+```
+
+Verify `~/.omp/agent/skills/ios-simulator-skill/SKILL.md` exists, then restart OMP; the skill is reachable as `skill://ios-simulator-skill`. For a project-local install, use `.omp/skills/ios-simulator-skill` as the destination.
+
 ## Troubleshooting
 
 **Taps, swipes and typing do nothing, but reads work.** `idb` reports success and the screen
@@ -390,7 +464,7 @@ starting a fresh companion. Fix: `idb disconnect <udid>`.
 
 ## Documentation
 
-- **SKILL.md** (this file) - Script reference, requirements, troubleshooting
+- **SKILL.md** (this file) - Script reference, OMP orchestration, requirements, troubleshooting
 - **README.md** - Installation, updating idb, Xcode 27 notes
 - **CLAUDE.md** - Architecture and implementation details
 
@@ -410,4 +484,4 @@ starting a fresh companion. Fix: `idb disconnect <udid>`.
 
 ---
 
-Use these scripts directly or let Claude Code invoke them automatically when your request matches the skill description.
+Scripts run via the shell unchanged; OMP discovers this skill when a request matches the description above and reads it via `skill://ios-simulator-skill`.
