@@ -75,7 +75,7 @@ HangBuster session IDs work the same way: `SID = ...` from `--start`, reused by 
 
 ### Streaming → `hub op:start`
 
-`log_monitor.py --follow` and `hang_watcher.py --watch` are long-running processes. Never run them in a foreground bash call — start them supervised via `hub` (`op: "start"` with a ready log pattern), follow output with log cursors, and stop by name when done. Bounded-duration captures (`--duration 30`) are fine in plain `bash`.
+`log_monitor.py --follow` and `hang_watcher.py --watch` are long-running processes. Never run them in a foreground bash call — start them supervised via `hub` (`op: "start"` with a ready log pattern), follow output with log cursors, and stop by name when done. Known defect: `log_monitor.py --duration N` checks the deadline only after a log line arrives, so a quiet process blocks past the deadline — treat `--duration` as streaming too and run it via `hub` (or wrap it with `timeout N+5`).
 
 HangBuster **session mode** (`--start` / `--stop`, detached worker) is already OMP-shaped — no hub needed; it's the recommended path for hang recording.
 
@@ -109,7 +109,7 @@ Scripts remain authoritative for anything involving device state or subprocess c
    - Options: `--project`, `--scheme`, `--clean`, `--test`, `--verbose`, `--json`
 
 2. **log_monitor.py** - Real-time log monitoring with intelligent filtering
-   - Stream logs or capture by duration
+   - Stream logs or capture by duration (duration-bounded capture can block on quiet processes — run via `hub` or `timeout`, see OMP Orchestration)
    - Filter by severity (error/warning/info/debug)
    - Deduplicate repeated messages
    - Options: `--app`, `--severity`, `--follow`, `--duration`, `--output`, `--json`
