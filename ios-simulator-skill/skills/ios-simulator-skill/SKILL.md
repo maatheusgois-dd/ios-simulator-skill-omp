@@ -462,6 +462,14 @@ starting a fresh companion. Fix: `idb disconnect <udid>`.
 **`idb: command not found`.** The companion and the CLI are separate packages; install both
 (see Requirements). If `which -a idb` shows more than one, the first on `PATH` wins.
 
+**`push_notification.py` fails with `UNErrorDomain code=2003` ("Source is not authorized").**
+This is a system restriction, not a script bug: `simctl push` only delivers to apps that have
+registered for remote notifications (uploadedd APNs entitlement + registration call). Raw
+`xcrun simctl push` fails identically. Apps that never requested notification authorization
+cannot receive simulated pushes. Also note `privacy_manager.py` has no `notifications` service —
+notification authorization cannot be pre-granted via `simctl privacy`; the app must request it
+through its own UI flow first.
+
 ## Documentation
 
 - **SKILL.md** (this file) - Script reference, OMP orchestration, requirements, troubleshooting
