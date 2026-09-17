@@ -95,9 +95,11 @@ class VisualDiffer:
         # Convert to grayscale for easier processing
         diff_gray = diff_image.convert("L")
 
-        # Count non-zero pixels (different)
-        pixels = diff_gray.getdata()
-        return sum(1 for pixel in pixels if pixel > 10)  # Threshold for noise
+        # Count non-zero pixels (different) via histogram.
+        # (Image.Image.getdata is deprecated in Pillow 12 and removed in 14;
+        # histogram() is faster and stable across versions.)
+        hist = diff_gray.histogram()
+        return sum(hist[11:])  # Threshold for noise: values > 10
 
     def generate_diff_image(self, baseline_path: str, current_path: str, output_path: str) -> None:
         """Generate highlighted difference image."""

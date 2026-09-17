@@ -28,7 +28,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from common.cache_utils import ProgressiveCache
-from common.device_utils import resolve_device_identifier
+from common.device_utils import resolve_udid
 
 
 def _env_int(name: str, default: int, *, min_value: int = 0) -> int:
@@ -568,9 +568,9 @@ Examples:
 
     args = parser.parse_args()
 
-    # Resolve device
+    # Resolve device (auto-detect booted simulator when --udid is omitted)
     try:
-        udid = resolve_device_identifier(args.udid)
+        udid = resolve_udid(args.udid)
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         sys.exit(1)
